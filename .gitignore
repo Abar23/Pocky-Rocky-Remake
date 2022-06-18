@@ -1,0 +1,12 @@
+# Ignore build outputs
+**/bin/
+**/obj/
+!/vendor/bin/
+
+# Ignore visual studios generated files
+.vs/
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user
+**.vscode
