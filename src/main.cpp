@@ -3,7 +3,7 @@
 #include "stb_image.h"
 
 #include <iostream>
-
+#define STB_IMAGE_IMPLEMENTATION
 #include "game.cpp"
 Game* Game::event_handling_instance;
 
