@@ -8,8 +8,6 @@
 #include "core/ecs/systems/PhysicsSystem.h"
 #include "core/ecs/framework/EcsTypes.h"
 #include "math/Vec3.h"
-#include "stb/stb_image.h"
-#define STB_IMAGE_IMPLEMENTATION
 #include "game.h"
 #include <memory>
 

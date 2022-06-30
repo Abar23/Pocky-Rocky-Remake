@@ -19,6 +19,7 @@ workspace "Pocky-Rocky-Remake"
         include "./vendor/Glad"
         include "./vendor/GLFW"
         include "./vendor/ImGui"
+    group ""
 
     project "Pocky-Rocky-Remake"
         location "."
@@ -41,7 +42,8 @@ workspace "Pocky-Rocky-Remake"
         {
             "_USE_MATH_DEFINES",
             "_USE_MATH_DEFINES",
-            "GLFW_INCLUDE_NONE"
+            "GLFW_INCLUDE_NONE",
+            "STB_IMAGE_IMPLEMENTATION"
         }
 
         includedirs

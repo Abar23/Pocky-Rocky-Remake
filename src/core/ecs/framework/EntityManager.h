@@ -3,7 +3,7 @@
 #include <queue>
 #include <array>
 #include "EcsTypes.h"
-#include "Assert.h"
+#include "core/Assert.h"
 
 class EntityManager
 {
