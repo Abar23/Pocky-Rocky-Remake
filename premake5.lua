@@ -14,15 +14,12 @@ workspace "Pocky-Rocky-Remake"
     }
 
     outputDir = "%{cfg.buildcfg}_%{cfg.system}_%{cfg.architecture}"
-
-    vendorIncludes = {}
-    vendorIncludes["Glad"] = "./vendor/glad/include"
-    vendorIncludes["GLFW"] = "./vendor/GLFW/include"
-    vendorIncludes["stb_image"] = "./vendor/stb/"
     
     group "Dependencies"
         include "./vendor/Glad"
         include "./vendor/GLFW"
+        include "./vendor/ImGui"
+    group ""
 
     project "Pocky-Rocky-Remake"
         location "."
@@ -39,33 +36,52 @@ workspace "Pocky-Rocky-Remake"
             "./src/**.cpp",
             "./src/**.h",
             "./src/**.inl",
-            "./vendor/stb/stb_image/**.h"
         }
 
         defines
         {
             "_USE_MATH_DEFINES",
             "_USE_MATH_DEFINES",
-            "GLFW_INCLUDE_NONE"
+            "GLFW_INCLUDE_NONE",
+            "STB_IMAGE_IMPLEMENTATION"
         }
 
         includedirs
         {
-            "%{wks.name}/src",
-            "%{vendorIncludes.Glad}",
-            "%{vendorIncludes.GLFW}",
-            "%{vendorIncludes.stb_image}"
+            "./src",
+            "./vendor/glad/include",
+            "./vendor/GLFW/include",
+            "./vendor/OpenAL/include",
+            "./vendor/imgui/include",
+            "./vendor/dr_libs/include",
+            "./vendor/stb/include"
         }
 
         links
         {
             "GLFW",
             "Glad",
+            "ImGui",
             "opengl32.lib"
         }
 
         filter "system:windows"
             systemversion "latest"
+
+            filter "configurations:Debug"
+                
+                links
+                {
+                    "./vendor/OpenAL/libs/Win64/Debug/OpenAL32.lib"
+                }
+
+            
+            filter "configurations:Release"
+
+                links
+                {
+                    "./vendor/OpenAL/libs/Win64/Release/OpenAL32.lib"
+                }
 
         filter "configurations:Debug"
             runtime "Debug"
