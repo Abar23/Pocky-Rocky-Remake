@@ -3,7 +3,13 @@
 #include "stb_image.h"
 
 #include <iostream>
+#define STB_IMAGE_IMPLEMENTATION
+#include "game.cpp"
+Game* Game::event_handling_instance;
 
+
+
+/*
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
 
@@ -23,9 +29,19 @@ const char *fragmentShaderSource = "#version 330 core\n"
     "{\n"
     "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     "}\n\0";
-
+    */
 int main()
 {
+
+  Game* pockyAndRocky = new Game;
+
+  pockyAndRocky->init();
+  pockyAndRocky->run();
+  pockyAndRocky->shutdown();
+  delete(pockyAndRocky);
+  return 0;
+
+  /*
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();
@@ -177,8 +193,10 @@ int main()
     // ------------------------------------------------------------------
     glfwTerminate();
     return 0;
+    */
 }
 
+/*
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
@@ -195,4 +213,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
 }
+
+*/
 
