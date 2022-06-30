@@ -1,6 +1,7 @@
 # Ignore build outputs
 **/bin/
 **/obj/
+**/build/
 !/vendor/bin/
 
 # Ignore visual studios generated files
