@@ -10,9 +10,21 @@
 #include "math/Vec3.h"
 #include "game.h"
 #include <memory>
+#include "OpenAL/al.h"
+#include "OpenAL/alc.h"
+#include "core/utility/Assert.h"
+#include "core/utility/ErrorCheck.h"
 
 int main()
 {
+	ALCdevice* device = nullptr;
+	const char* devices = alcCall(alcGetString, device, (ALCdevice*)(0), -1);
+	while (devices && *devices != NULL)
+	{
+		//ALCdevice* device = alcOpenDevice(devices);
+		std::cout << devices << std::endl;
+		devices += strlen(devices) + 1; //next device
+	}
 	Game pockyAndRocky;
 	pockyAndRocky.run();
 	pockyAndRocky.shutdown();

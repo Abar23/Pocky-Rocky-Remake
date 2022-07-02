@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Assert.h"
+#include "core/utility/Assert.h"
 
 template<typename T>
 void ComponentArray<T>::InsertData(Entity entity, T component)

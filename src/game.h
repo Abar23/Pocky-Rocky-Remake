@@ -31,7 +31,6 @@ public:
 
 		shader = new Shader("assets/shaders/gameShader.vs", "assets/shaders/gameShader.fs");
 
-
 		initRenderer();
 		initTextures();
 
