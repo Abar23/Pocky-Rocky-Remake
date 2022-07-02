@@ -70,7 +70,14 @@ workspace "Pocky-Rocky-Remake"
 
             filter "configurations:Debug"
                 
-                links
+            filter { "system:windows" }
+                
+                prebuildcommands 
+                { 
+                    "copy \"$(ProjectDir)\\vendor\\OpenAL\\libs\\Win64\\Debug\\*.dll\" \"$(ProjectDir)$(OutDir)\"" 
+                }
+
+                links   
                 {
                     "./vendor/OpenAL/libs/Win64/Debug/OpenAL32.lib"
                 }
@@ -78,7 +85,12 @@ workspace "Pocky-Rocky-Remake"
             
             filter "configurations:Release"
 
-                links
+                prebuildcommands 
+                { 
+                    "copy \"$(ProjectDir)\\vendor\\OpenAL\\libs\\Win64\\Release\\*.dll\" \"$(ProjectDir)$(OutDir)\"" 
+                }
+
+                links   
                 {
                     "./vendor/OpenAL/libs/Win64/Release/OpenAL32.lib"
                 }
