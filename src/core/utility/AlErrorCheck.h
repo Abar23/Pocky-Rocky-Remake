@@ -1,0 +1,132 @@
+#pragma once
+
+#include <utility>
+#include <iostream>
+#include "glad/glad.h"
+#include "OpenAL/al.h"
+#include "OpenAL/alc.h"
+
+#ifdef DEBUG
+	#define alCall(function, ...) alCallImpl(__FILE__, __LINE__, function, __VA_ARGS__)
+	#define alcCall(function, device, ...) alcCallImpl(__FILE__, __LINE__, function, device, __VA_ARGS__)
+#else
+	#define alCall(function, ...) function(__VA_ARGS__)
+	#define alcCall(function, device, ...) function(device, __VA_ARGS__)
+#endif
+
+// al.h fucntion call error checker
+
+bool checkOpenAlError(const std::string& filename, const std::uint_fast32_t line)
+{
+	ALenum error = alGetError();
+	if (error != AL_NO_ERROR)
+	{
+		std::cerr << "***ERROR*** (" << filename << ": " << line << ")\n";
+		switch (error)
+		{
+		case AL_INVALID_NAME:
+			std::cerr << "AL_INVALID_NAME: a bad name (ID) was passed to an OpenAL function";
+			break;
+		case AL_INVALID_ENUM:
+			std::cerr << "AL_INVALID_ENUM: an invalid enum value was passed to an OpenAL function";
+			break;
+		case AL_INVALID_VALUE:
+			std::cerr << "AL_INVALID_VALUE: an invalid value was passed to an OpenAL function";
+			break;
+		case AL_INVALID_OPERATION:
+			std::cerr << "AL_INVALID_OPERATION: the requested operation is not valid";
+			break;
+		case AL_OUT_OF_MEMORY:
+			std::cerr << "AL_OUT_OF_MEMORY: the requested operation resulted in OpenAL running out of memory";
+			break;
+		default:
+			std::cerr << "UNKNOWN AL ERROR: " << error;
+		}
+		std::cerr << std::endl;
+		return false;
+	}
+	return true;
+}
+
+
+template<typename AlFunction, typename... Params>
+auto alCallImpl(const char* filename,
+	const std::uint32_t line,
+	AlFunction function,
+	Params&&... params)
+	->typename std::enable_if_t<!std::is_same_v<void, decltype(function(params...))>, decltype(function(params...))>
+{
+	auto ret = function(std::forward<Params>(params)...);
+	checkOpenAlError(filename, line);
+	return ret;
+}
+
+template<typename AlFunction, typename... Params>
+auto alCallImpl(const char* filename,
+	const std::uint32_t line,
+	AlFunction function,
+	Params&&... params)
+	->typename std::enable_if_t<std::is_same_v<void, decltype(function(params...))>, bool>
+{
+	function(std::forward<Params>(params)...);
+	return checkOpenAlError(filename, line);
+}
+
+// alc.h function call error checker
+
+bool checkOpenAlContextError(const std::string& filename, const std::uint_fast32_t line, ALCdevice* device)
+{
+	ALCenum error = alcGetError(device);
+	if (error != ALC_NO_ERROR)
+	{
+		std::cerr << "***ERROR*** (" << filename << ": " << line << ")\n";
+		switch (error)
+		{
+		case ALC_INVALID_VALUE:
+			std::cerr << "ALC_INVALID_VALUE: an invalid value was passed to an OpenAL function";
+			break;
+		case ALC_INVALID_DEVICE:
+			std::cerr << "ALC_INVALID_DEVICE: a bad device was passed to an OpenAL function";
+			break;
+		case ALC_INVALID_CONTEXT:
+			std::cerr << "ALC_INVALID_CONTEXT: a bad context was passed to an OpenAL function";
+			break;
+		case ALC_INVALID_ENUM:
+			std::cerr << "ALC_INVALID_ENUM: an unknown enum value was passed to an OpenAL function";
+			break;
+		case ALC_OUT_OF_MEMORY:
+			std::cerr << "ALC_OUT_OF_MEMORY: an unknown enum value was passed to an OpenAL function";
+			break;
+		default:
+			std::cerr << "UNKNOWN ALC ERROR: " << error;
+		}
+		std::cerr << std::endl;
+		return false;
+	}
+	return true;
+}
+
+template<typename AlContextFunction, typename... Params>
+auto alcCallImpl(const char* filename,
+	const std::uint32_t line,
+	AlContextFunction function,
+	ALCdevice* device,
+	Params&&... params)
+	->typename std::enable_if_t<std::is_same_v<void, decltype(function(device, params...))>, bool>
+{
+	function(std::forward<Params>(params)...);
+	return checkOpenAlContextError(filename, line, device);
+}
+
+template<typename AlContextFunction, typename... Params>
+auto alcCallImpl(const char* filename,
+	const std::uint32_t line,
+	AlContextFunction function,
+	ALCdevice* device,
+	Params&&... params)
+	->typename std::enable_if_t<!std::is_same_v<void, decltype(function(device, params...))>, decltype(function(device, params...))>
+{
+	auto ret = function(device, std::forward<Params>(params)...);
+	checkOpenAlContextError(filename, line, device);
+	return ret;
+}

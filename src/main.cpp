@@ -13,12 +13,12 @@
 #include "OpenAL/al.h"
 #include "OpenAL/alc.h"
 #include "core/utility/Assert.h"
-#include "core/utility/ErrorCheck.h"
+#include "core/utility/AlErrorCheck.h"
 
 int main()
 {
 	ALCdevice* device = nullptr;
-	const char* devices = alCall(alcGetString, device, ALC_EXTENSIONS);
+	const char* devices = alcCall(alcGetString, device, ALC_EXTENSIONS);
 	while (devices && *devices != NULL)
 	{
 		//ALCdevice* device = alcOpenDevice(devices);
