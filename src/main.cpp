@@ -18,7 +18,8 @@
 int main()
 {
 	ALCdevice* device = nullptr;
-	const char* devices = alcCall(alcGetString, device, ALC_EXTENSIONS);
+	const ALCchar* devices;
+	alcCall(alcGetString, devices, device, ALC_EXTENSIONS);
 	while (devices && *devices != NULL)
 	{
 		//ALCdevice* device = alcOpenDevice(devices);
