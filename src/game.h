@@ -12,9 +12,18 @@ class Game {
 	GLFWwindow* window;
 	Shader* shader;
 
+	// # of pixels in x,y for each map part
+	// mostly unused, for now
+	float  mapPixels[2] = { 1792, 3032 }; 
+	float section1Pixels[2] = { 256, 1368 };
+	float section2Pixels[2] = { 1280, 216 };
+	float section3Pixels[2] = { 256, 3032 };
+	int screenPixels[2] = { 256, 216 };
+
+
 	inline static Game* event_handling_instance = nullptr;
-	const unsigned int SCR_WIDTH = 3*256;
-	const unsigned int SCR_HEIGHT = 3*216;
+	const unsigned int SCR_WIDTH = 3* screenPixels[0];
+	const unsigned int SCR_HEIGHT = 3* screenPixels[1];
 
 	float cameraPosition[3] = { 0,0,0 };
 	float deltaTime = 0;
@@ -82,8 +91,8 @@ private:
 		glfwMakeContextCurrent(window);
 		glfwSetFramebufferSizeCallback(window, framebuffer_size_callback_dispatch);
 
-		glfwSetWindowSizeLimits(window, 2*256, 2*216, GLFW_DONT_CARE, GLFW_DONT_CARE);
-		glfwSetWindowAspectRatio(window, 256, 216);
+		glfwSetWindowSizeLimits(window, 2* screenPixels[0], 2* screenPixels[1], GLFW_DONT_CARE, GLFW_DONT_CARE);
+		glfwSetWindowAspectRatio(window, screenPixels[0], screenPixels[1]);
 
 		// glad: load all OpenGL function pointers
 		// ---------------------------------------
@@ -97,26 +106,26 @@ private:
 	}
 
 	void initRenderer() {
-		float section1Height = (2* (1368.0f/ 216.0f)) -1;
-		//float vertices[] = {
-		//	//positions          //tex coords
-		//	1.0f,  171.0f / 16.0f,  0.0f,           1.0f / 7.0f, 171.0f / 379.0f,// top right
-		//	1.0f,  -1.0f, 0.0f,     1.0f / 7.0f, 0.0f,// bottom right
-		//	-1.0f, -1.0f, 0.0f,     0.0f, 0.0f,// bottom left
-		//	-1.0f,  171.0f / 16.0f, 0.0f,   0.0f, 171.0f / 379.0f   // top left 
-		//};
+		
 
+		float section1Height = 2* (section1Pixels[1] / screenPixels[1]);
+		float section2Width = 2 * (section2Pixels[0] / screenPixels[0]);
+
+		float mapWidth = 2 * (mapPixels[0] / screenPixels[0]);
+		float mapHeight = 2 * (mapPixels[1] / screenPixels[1]);
 		float vertices[] = {
-			//positions          //tex coords
-			1.0f,  section1Height,  0.0f,           1.0f / 7.0f, 171.0f / 379.0f,// top right
-			1.0f,  -1.0f, 0.0f,     1.0f / 7.0f, 0.0f,// bottom right
-			-1.0f, -1.0f, 0.0f,     0.0f, 0.0f,// bottom left
-			-1.0f,  section1Height, 0.0f,   0.0f, 171.0f / 379.0f   // top left 
+			
+			//positions                            //tex coords
+			mapWidth-1, mapHeight - 1.0f, 0.0f,    1.0f, 1.0f,  // top right
+			mapWidth-1, -1.0f,            0.0f,    1.0f, 0.0f,  // bottom right
+			-1.0f,      -1.0f,            0.0f,    0.0f, 0.0f,  // bottom left
+			-1.0f,      mapHeight - 1.0f, 0.0f,    0.0f, 1.0f,  // top left 
+
 		};
 
-		unsigned int indices[] = {  // note that we start from 0!
+		unsigned int indices[] = {
 			0, 1, 3,  // first Triangle
-			1, 2, 3   // second Triangle
+			1, 2, 3,   // second Triangle
 		};
 
 		glGenVertexArrays(1, &vao);
