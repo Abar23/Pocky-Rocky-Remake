@@ -10,7 +10,8 @@
 class Game {
 
 	GLFWwindow* window;
-	Shader* shader;
+	Shader* mapShader;
+	Shader* pockyShader;
 
 	// # of pixels in x,y for each map part
 	// mostly unused, for now
@@ -32,14 +33,18 @@ class Game {
 	GLuint          vbo;
 	GLuint          ebo;
 
+	GLuint          vaoPocky;
+	GLuint          vboPocky;
+	GLuint          eboPocky;
+
 public:
 	Game() {
 		event_handling_instance = this;
 
 		bool success = createWindow();
 
-		shader = new Shader("src/shaders/gameShader.vs", "src/shaders/gameShader.fs");
-
+		mapShader = new Shader("src/shaders/mapShader.vs", "src/shaders/mapShader.fs");
+		pockyShader = new Shader("src/shaders/entityShader.vs", "src/shaders/entityShader.fs");
 
 		initRenderer();
 		initTextures();
@@ -106,21 +111,15 @@ private:
 	}
 
 	void initRenderer() {
-		
-
-		float section1Height = 2* (section1Pixels[1] / screenPixels[1]);
-		float section2Width = 2 * (section2Pixels[0] / screenPixels[0]);
 
 		float mapWidth = 2 * (mapPixels[0] / screenPixels[0]);
 		float mapHeight = 2 * (mapPixels[1] / screenPixels[1]);
 		float vertices[] = {
-			
 			//positions                            //tex coords
 			mapWidth-1, mapHeight - 1.0f, 0.0f,    1.0f, 1.0f,  // top right
 			mapWidth-1, -1.0f,            0.0f,    1.0f, 0.0f,  // bottom right
 			-1.0f,      -1.0f,            0.0f,    0.0f, 0.0f,  // bottom left
-			-1.0f,      mapHeight - 1.0f, 0.0f,    0.0f, 1.0f,  // top left 
-
+			-1.0f,      mapHeight - 1.0f, 0.0f,    0.0f, 1.0f   // top left 
 		};
 
 		unsigned int indices[] = {
@@ -155,6 +154,58 @@ private:
 		// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
 		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
 		glBindVertexArray(0);
+
+
+
+		// Setup for pocky entity 
+		// not its final location, just putting logic in place
+		int cellCount[] = { 26,6 };
+
+		float verticesPocky[] = {
+			//positions            //tex coords
+			1.0f,  1.0f,  0.0f,    1.0f/cellCount[0], 1.0f,  // top right
+			1.0f,  -1.0f, 0.0f,    1.0f/cellCount[0], 1.0f - (1.0f / cellCount[1]),  // bottom right
+			-1.0f, -1.0f, 0.0f,    0.0f, 1.0f - (1.0f / cellCount[1]),  // bottom left
+			-1.0f, 1.0f,  0.0f,    0.0f, 1.0f  // top left 
+		};
+
+		unsigned int indicesPocky[] = {
+			0, 1, 3,  // first Triangle
+			1, 2, 3,   // second Triangle
+		};
+
+		glGenVertexArrays(1, &vaoPocky);
+		glGenBuffers(1, &vboPocky);
+		glGenBuffers(1, &eboPocky);
+		// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+		glBindVertexArray(vaoPocky);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vboPocky);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(verticesPocky), verticesPocky, GL_STATIC_DRAW);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboPocky);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesPocky), indicesPocky, GL_STATIC_DRAW);
+
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+		glEnableVertexAttribArray(1);
+
+		pockyShader->use();
+		glUniform2f(glGetUniformLocation(pockyShader->ID, "scale"), 34.0f/screenPixels[0], 42.0f / screenPixels[1]);
+
+
+
+	}
+
+	void setPockySprite(int frameID) {
+		int row = frameID / 26;
+		int column = frameID % 26;
+		pockyShader->use();
+
+		pockyShader->setInt("entityTexture", 1);
+		glUniform2f(glGetUniformLocation(pockyShader->ID, "FrameOffset"), column / 26.0f, -row / 6.0f);
 	}
 
 	void initTextures() {
@@ -174,8 +225,7 @@ private:
 		int width, height, nrChannels;
 		stbi_set_flip_vertically_on_load(true);// flips y axis
 
-		// load and generate the texture
-
+		// load and generate the map texture
 		unsigned char* data = stbi_load("src/sprites/tempMap.png", &width, &height, &nrChannels, 0);
 
 
@@ -189,16 +239,63 @@ private:
 		stbi_image_free(data);
 
 
-		shader->use();
+		mapShader->use();
 
-		shader->setInt("mapTexture", 0);
+		mapShader->setInt("mapTexture", 0);
+
+		
+
+
+		unsigned int pockyTexture;
+
+		glGenTextures(1, &pockyTexture);
+		glBindTexture(GL_TEXTURE_2D, pockyTexture);
+
+		//filtering 
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		// load and generate the pocky texture
+		data = stbi_load("assets/sprite_sheets/bunnyPocky.png", &width, &height, &nrChannels, 0);
+
+
+		if (data) {
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		else {
+			std::cout << "Failed to load texture" << std::endl;
+		}
+		stbi_image_free(data);
+
+
+
+		pockyShader->use();
+
+		pockyShader->setInt("entityTexture", 1);
+
 
 		// bind textures on corresponding texture units
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, mapTexture);
 
-	}
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, pockyTexture);
 
+	}
+	
+	int currentFrame = 0;
+	float frameTime = 0.2f;
+	float frameCounter = 0.0f;
+	void PockyStuff() {
+		frameCounter += deltaTime;
+		if (frameCounter >= frameTime) {
+			frameCounter = 0;
+			currentFrame++;
+			if (currentFrame == 131) currentFrame = 0;
+		}
+		setPockySprite(currentFrame);
+	}
 
 	void render() {
 		float currentFrame = (float)glfwGetTime();
@@ -210,12 +307,24 @@ private:
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// draw our first triangle
-		shader->use();
+		// draws the map
+		mapShader->use();
 
-		glUniform3f(glGetUniformLocation(shader->ID, "camPos"), cameraPosition[0], cameraPosition[1], cameraPosition[2]);
+		glUniform3f(glGetUniformLocation(mapShader->ID, "camPos"), cameraPosition[0], cameraPosition[1], cameraPosition[2]);
 
 		glBindVertexArray(vao);
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+		// draws pocky
+		pockyShader->use();
+
+		glUniform3f(glGetUniformLocation(pockyShader->ID, "camPos"), cameraPosition[0], cameraPosition[1], cameraPosition[2]);
+		glUniform2f(glGetUniformLocation(pockyShader->ID, "entityPos"), cameraPosition[0], cameraPosition[1]);
+
+		PockyStuff();
+
+		glBindVertexArray(vaoPocky);
 
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	}
