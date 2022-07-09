@@ -13,8 +13,8 @@ class Game {
 	Shader* shader;
 
 	inline static Game* event_handling_instance = nullptr;
-	const unsigned int SCR_WIDTH = 800;
-	const unsigned int SCR_HEIGHT = 600;
+	const unsigned int SCR_WIDTH = 3*256;
+	const unsigned int SCR_HEIGHT = 3*216;
 
 	float cameraPosition[3] = { 0,0,0 };
 	float deltaTime = 0;
@@ -29,7 +29,7 @@ public:
 
 		bool success = createWindow();
 
-		shader = new Shader("assets/shaders/gameShader.vs", "assets/shaders/gameShader.fs");
+		shader = new Shader("src/shaders/gameShader.vs", "src/shaders/gameShader.fs");
 
 
 		initRenderer();
@@ -82,6 +82,9 @@ private:
 		glfwMakeContextCurrent(window);
 		glfwSetFramebufferSizeCallback(window, framebuffer_size_callback_dispatch);
 
+		glfwSetWindowSizeLimits(window, 2*256, 2*216, GLFW_DONT_CARE, GLFW_DONT_CARE);
+		glfwSetWindowAspectRatio(window, 256, 216);
+
 		// glad: load all OpenGL function pointers
 		// ---------------------------------------
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -94,13 +97,23 @@ private:
 	}
 
 	void initRenderer() {
+		float section1Height = (2* (1368.0f/ 216.0f)) -1;
+		//float vertices[] = {
+		//	//positions          //tex coords
+		//	1.0f,  171.0f / 16.0f,  0.0f,           1.0f / 7.0f, 171.0f / 379.0f,// top right
+		//	1.0f,  -1.0f, 0.0f,     1.0f / 7.0f, 0.0f,// bottom right
+		//	-1.0f, -1.0f, 0.0f,     0.0f, 0.0f,// bottom left
+		//	-1.0f,  171.0f / 16.0f, 0.0f,   0.0f, 171.0f / 379.0f   // top left 
+		//};
+
 		float vertices[] = {
 			//positions          //tex coords
-			1.0f,  171.0f / 16.0f, 0.0f,   1.0f / 7.0f, 171.0f / 379.0f,// top right
-			1.0f, -1.0f, 0.0f,   1.0f / 7.0f, 0.0f,// bottom right
-		   -1.0f, -1.0f, 0.0f,   0.0f, 0.0f,// bottom left
-		   -1.0f,  171.0f / 16.0f, 0.0f,   0.0f, 171.0f / 379.0f   // top left 
+			1.0f,  section1Height,  0.0f,           1.0f / 7.0f, 171.0f / 379.0f,// top right
+			1.0f,  -1.0f, 0.0f,     1.0f / 7.0f, 0.0f,// bottom right
+			-1.0f, -1.0f, 0.0f,     0.0f, 0.0f,// bottom left
+			-1.0f,  section1Height, 0.0f,   0.0f, 171.0f / 379.0f   // top left 
 		};
+
 		unsigned int indices[] = {  // note that we start from 0!
 			0, 1, 3,  // first Triangle
 			1, 2, 3   // second Triangle
