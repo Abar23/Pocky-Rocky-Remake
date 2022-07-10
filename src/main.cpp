@@ -14,18 +14,24 @@
 #include "OpenAL/alc.h"
 #include "core/utility/Assert.h"
 #include "core/utility/AlErrorCheck.h"
+#include "core/sound/AudioDevice.h"
+#include "core/sound/AudioClip.h"
+#include "core/sound/AudioSource.h"
+#include "core/sound/EffectAudioSource.h"
 
 int main()
 {
-	ALCdevice* device = nullptr;
-	const ALCchar* devices;
-	alcCall(alcGetString, devices, device, ALC_EXTENSIONS);
-	while (devices && *devices != NULL)
-	{
-		//ALCdevice* device = alcOpenDevice(devices);
-		std::cout << devices << std::endl;
-		devices += strlen(devices) + 1; //next device
-	}
+	AudioDevice audioDevice;
+	audioDevice.SetGain(2.0f);
+	audioDevice.SetPosition(vec3());
+	audioDevice.SetOrientation(vec3::Right(), vec3::Up());
+	audioDevice.SetAttenuation(AL_INVERSE_DISTANCE);
+	AudioClip audioClip("./assets/sounds/mario_07.wav");
+	EffectAudioSource effectSource(audioClip);
+	AudioSource *source = &effectSource;
+	source->SetLooping(true);
+	source->Play();
+
 	Game pockyAndRocky;
 	pockyAndRocky.run();
 	pockyAndRocky.shutdown();
