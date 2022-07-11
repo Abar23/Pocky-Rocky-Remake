@@ -37,7 +37,6 @@ public:
 				transform.position.x, 
 				transform.position.y);
 
-			glUniform2f(glGetUniformLocation(spriteRenderer.shader->ID, "scale"), 1.0f, 1.0f); //scale should be removed as a uniform eventually
 			glBindVertexArray(spriteRenderer.vao);
 
 			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

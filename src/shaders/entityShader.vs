@@ -10,6 +10,6 @@ uniform vec2 entityPos;
 
 void main(void)
 {
-    gl_Position = vec4((aPos.x - camPos.x + entityPos.x), (aPos.y - camPos.y + entityPos.y), aPos.z - camPos.z, 1.0) ;
+    gl_Position = vec4(aPos.x - camPos.x + entityPos.x, aPos.y - camPos.y + entityPos.y, aPos.z - camPos.z, 1.0) ;
     TexCoord = aTexCoord;
 } 

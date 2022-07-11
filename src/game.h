@@ -274,8 +274,6 @@ private:
 
 
 
-
-
 	void processInput()
 	{
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -295,9 +293,6 @@ private:
 		}
 
 	}
-
-
-
 
 	//callback functions
 	void framebuffer_size_callback(GLFWwindow* window, int width, int height)
