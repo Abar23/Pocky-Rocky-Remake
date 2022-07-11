@@ -7,9 +7,9 @@ out vec2 TexCoord;
 
 uniform vec3 camPos;
 uniform vec2 entityPos;
-uniform vec2 scale;
+
 void main(void)
 {
-    gl_Position = vec4((scale.x*aPos.x - camPos.x + entityPos.x), (scale.y*aPos.y - camPos.y + entityPos.y), aPos.z - camPos.z, 1.0) ;
+    gl_Position = vec4((aPos.x - camPos.x + entityPos.x), (aPos.y - camPos.y + entityPos.y), aPos.z - camPos.z, 1.0) ;
     TexCoord = aTexCoord;
 } 

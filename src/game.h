@@ -2,52 +2,64 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
+#include "locators/EcsLocator.h"
+#include "core/ecs/framework/EcsManager.h"
+#include "core/ecs/components/Gravity.h"
+#include "core/ecs/components/Transform.h"
+#include "core/ecs/components/RigidBody.h"
+#include "core/ecs/components/SpriteRenderer.h"
+#include "core/ecs/systems/PhysicsSystem.h"
+#include "core/ecs/systems/RenderSystem.h"
+#include "core/ecs/framework/EcsTypes.h"
+#include "math/Vec3.h"
+#include <memory>
 
 #include "shader.h"
+#include "ComponentGenerator.h"
 
 #include "stb/stb_image.h"
 
 class Game {
-
 	GLFWwindow* window;
-	Shader* mapShader;
-	Shader* pockyShader;
 
+	EcsManager ecsManager;
+	std::shared_ptr<RenderSystem> renderSystem;
+	std::vector<Entity> entities;
+	Entity pockyEntity;
+	Entity mapEntity;
+
+
+	
 	// # of pixels in x,y for each map part
-	// mostly unused, for now
+	// not much use now but will be needed later
 	float  mapPixels[2] = { 1792, 3032 }; 
 	float section1Pixels[2] = { 256, 1368 };
 	float section2Pixels[2] = { 1280, 216 };
 	float section3Pixels[2] = { 256, 3032 };
 	int screenPixels[2] = { 256, 216 };
-
+	
 
 	inline static Game* event_handling_instance = nullptr;
 	const unsigned int SCR_WIDTH = 3* screenPixels[0];
 	const unsigned int SCR_HEIGHT = 3* screenPixels[1];
 
-	float cameraPosition[3] = { 0,0,0 };
+	vec3 cameraPosition;
 	float deltaTime = 0;
 	float lastFrame;
-	GLuint          vao;
-	GLuint          vbo;
-	GLuint          ebo;
-
-	GLuint          vaoPocky;
-	GLuint          vboPocky;
-	GLuint          eboPocky;
 
 public:
+
 	Game() {
 		event_handling_instance = this;
 
 		bool success = createWindow();
 
-		mapShader = new Shader("src/shaders/mapShader.vs", "src/shaders/mapShader.fs");
-		pockyShader = new Shader("src/shaders/entityShader.vs", "src/shaders/entityShader.fs");
+		ComponentGenerator::init();
 
-		initRenderer();
 		initTextures();
+		initECS();
+		initEntities();
+		
 
 		lastFrame = (float)glfwGetTime();
 	}
@@ -63,8 +75,10 @@ public:
 	}
 
 	void shutdown() {
-		glDeleteVertexArrays(1, &vao);
-		glDeleteBuffers(1, &vbo);
+		// now that vao is in a component, i dont think its being free'd anymore 
+		// (should probably look into that at some point but thats a future problem for future me)
+		//glDeleteVertexArrays(1, &vao);
+		//glDeleteBuffers(1, &vbo);
 
 		glfwDestroyWindow(window);
 		glfwTerminate();
@@ -108,105 +122,7 @@ private:
 		}
 
 		return true;
-	}
-
-	void initRenderer() {
-
-		float mapWidth = 2 * (mapPixels[0] / screenPixels[0]);
-		float mapHeight = 2 * (mapPixels[1] / screenPixels[1]);
-		float vertices[] = {
-			//positions                            //tex coords
-			mapWidth-1, mapHeight - 1.0f, 0.0f,    1.0f, 1.0f,  // top right
-			mapWidth-1, -1.0f,            0.0f,    1.0f, 0.0f,  // bottom right
-			-1.0f,      -1.0f,            0.0f,    0.0f, 0.0f,  // bottom left
-			-1.0f,      mapHeight - 1.0f, 0.0f,    0.0f, 1.0f   // top left 
-		};
-
-		unsigned int indices[] = {
-			0, 1, 3,  // first Triangle
-			1, 2, 3,   // second Triangle
-		};
-
-		glGenVertexArrays(1, &vao);
-		glGenBuffers(1, &vbo);
-		glGenBuffers(1, &ebo);
-		// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-		glBindVertexArray(vao);
-
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-
-		// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-		// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-		// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-		glBindVertexArray(0);
-
-
-
-		// Setup for pocky entity 
-		// not its final location, just putting logic in place
-		int cellCount[] = { 26,6 };
-
-		float verticesPocky[] = {
-			//positions            //tex coords
-			1.0f,  1.0f,  0.0f,    1.0f/cellCount[0], 1.0f,  // top right
-			1.0f,  -1.0f, 0.0f,    1.0f/cellCount[0], 1.0f - (1.0f / cellCount[1]),  // bottom right
-			-1.0f, -1.0f, 0.0f,    0.0f, 1.0f - (1.0f / cellCount[1]),  // bottom left
-			-1.0f, 1.0f,  0.0f,    0.0f, 1.0f  // top left 
-		};
-
-		unsigned int indicesPocky[] = {
-			0, 1, 3,  // first Triangle
-			1, 2, 3,   // second Triangle
-		};
-
-		glGenVertexArrays(1, &vaoPocky);
-		glGenBuffers(1, &vboPocky);
-		glGenBuffers(1, &eboPocky);
-		// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-		glBindVertexArray(vaoPocky);
-
-		glBindBuffer(GL_ARRAY_BUFFER, vboPocky);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(verticesPocky), verticesPocky, GL_STATIC_DRAW);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboPocky);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesPocky), indicesPocky, GL_STATIC_DRAW);
-
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
-
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
-
-		pockyShader->use();
-		glUniform2f(glGetUniformLocation(pockyShader->ID, "scale"), 34.0f/screenPixels[0], 42.0f / screenPixels[1]);
-
-
-
-	}
-
-	void setPockySprite(int frameID) {
-		int row = frameID / 26;
-		int column = frameID % 26;
-		pockyShader->use();
-
-		pockyShader->setInt("entityTexture", 1);
-		glUniform2f(glGetUniformLocation(pockyShader->ID, "FrameOffset"), column / 26.0f, -row / 6.0f);
-	}
+	} 
 
 	void initTextures() {
 		unsigned int mapTexture;
@@ -238,13 +154,7 @@ private:
 		}
 		stbi_image_free(data);
 
-
-		mapShader->use();
-
-		mapShader->setInt("mapTexture", 0);
-
 		
-
 
 		unsigned int pockyTexture;
 
@@ -260,7 +170,7 @@ private:
 
 
 		if (data) {
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
 			glGenerateMipmap(GL_TEXTURE_2D);
 		}
 		else {
@@ -269,35 +179,81 @@ private:
 		stbi_image_free(data);
 
 
-
-		pockyShader->use();
-
-		pockyShader->setInt("entityTexture", 1);
-
-
 		// bind textures on corresponding texture units
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, mapTexture);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, pockyTexture);
-
 	}
 	
-	int currentFrame = 0;
+	void initECS() {
+		// ecs setup
+		EcsLocator::provide(&ecsManager);
+
+		ecsManager.RegisterComponent<Transform>();
+		ecsManager.RegisterComponent<SpriteRenderer>();
+
+
+		renderSystem = ecsManager.RegisterSystem<RenderSystem>();
+
+		Signature signature;
+		signature.set(ecsManager.GetComponentType<Transform>());
+		signature.set(ecsManager.GetComponentType<SpriteRenderer>());
+		ecsManager.SetSystemSignature<RenderSystem>(signature);
+	}
+
+	void initEntities() {
+		//creates map
+		mapEntity = ecsManager.CreateEntity();
+		entities.push_back(mapEntity);
+
+		ecsManager.AddComponent(
+			mapEntity,
+			Transform{
+				.position = vec3(-1.0f, -1.0f, 0.0f),
+				.rotation = vec3(0.0f, 0.0f, 0.0f),
+				.scale = vec3(1.0f, 1.0f, 1.0f)
+			});
+
+		ecsManager.AddComponent(mapEntity, ComponentGenerator::genSpriteRenderer(ComponentGenerator::Map));
+
+		//creates pocky
+		pockyEntity = ecsManager.CreateEntity();
+		entities.push_back(pockyEntity);
+
+		ecsManager.AddComponent(
+			pockyEntity,
+			Transform{
+				.position = vec3(0.0f, 0.0f, 0.0f),
+				.rotation = vec3(0.0f, 0.0f, 0.0f),
+				.scale = vec3(1.0f, 1.0f, 1.0f)
+			});
+
+		ecsManager.AddComponent(pockyEntity, ComponentGenerator::genSpriteRenderer(ComponentGenerator::Player));
+	}
+
+	// this will be in a PlayerController class later
+	int _currentFrame = 0;
 	float frameTime = 0.2f;
 	float frameCounter = 0.0f;
 	void PockyStuff() {
+		// updates the frame
 		frameCounter += deltaTime;
 		if (frameCounter >= frameTime) {
 			frameCounter = 0;
-			currentFrame++;
-			if (currentFrame == 131) currentFrame = 0;
+			_currentFrame++;
+			if (_currentFrame == 131) _currentFrame = 0;
 		}
-		setPockySprite(currentFrame);
+		ecsManager.GetComponent<SpriteRenderer>(pockyEntity).currentFrame = _currentFrame;
+
+		ecsManager.GetComponent<SpriteRenderer>(pockyEntity).cameraPosition = cameraPosition;
+		ecsManager.GetComponent<Transform>(pockyEntity).position = cameraPosition;
 	}
+	
 
 	void render() {
+
 		float currentFrame = (float)glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
@@ -307,26 +263,13 @@ private:
 		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// draws the map
-		mapShader->use();
 
-		glUniform3f(glGetUniformLocation(mapShader->ID, "camPos"), cameraPosition[0], cameraPosition[1], cameraPosition[2]);
-
-		glBindVertexArray(vao);
-
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-		// draws pocky
-		pockyShader->use();
-
-		glUniform3f(glGetUniformLocation(pockyShader->ID, "camPos"), cameraPosition[0], cameraPosition[1], cameraPosition[2]);
-		glUniform2f(glGetUniformLocation(pockyShader->ID, "entityPos"), cameraPosition[0], cameraPosition[1]);
-
+		//update entity data
 		PockyStuff();
+		ecsManager.GetComponent<SpriteRenderer>(mapEntity).cameraPosition = cameraPosition;
 
-		glBindVertexArray(vaoPocky);
-
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		// renders entities
+		renderSystem->Update(deltaTime);
 	}
 
 
@@ -339,16 +282,16 @@ private:
 			glfwSetWindowShouldClose(window, true);
 
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-			cameraPosition[1] += 1.5f * deltaTime;
+			cameraPosition.y += 1.5f * deltaTime;
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-			cameraPosition[1] -= 1.5f * deltaTime;
+			cameraPosition.y -= 1.5f * deltaTime;
 		}
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-			cameraPosition[0] -= 1.5f * deltaTime;
+			cameraPosition.x -= 1.5f * deltaTime;
 		}
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-			cameraPosition[0] += 1.5f * deltaTime;
+			cameraPosition.x += 1.5f * deltaTime;
 		}
 
 	}

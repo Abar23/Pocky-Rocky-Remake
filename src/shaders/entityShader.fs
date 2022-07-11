@@ -9,6 +9,7 @@ uniform vec2 FrameOffset;
 
 void main(void){
 
-FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);
-FragColor = texture(entityTexture, TexCoord+FrameOffset);
+vec4 texColor = texture(entityTexture, TexCoord+FrameOffset);
+if (texColor.a < 0.1) discard;
+FragColor = texColor;
 } 
