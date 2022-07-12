@@ -2,9 +2,9 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
-
+#include <future>
 #include "shader.h"
-
+#include "core/sound/Audio.h"
 #include "stb/stb_image.h"
 
 class Game {
@@ -24,7 +24,8 @@ class Game {
 	GLuint          ebo;
 
 public:
-	Game() {
+	Game() 
+	{
 		event_handling_instance = this;
 
 		bool success = createWindow();

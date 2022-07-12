@@ -3,29 +3,50 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include "OpenAL/al.h"
 #include "dr_libs/dr_wav.h"
 
 class AudioClip
 {
 public:
-	AudioClip(std::string soundFilName);
+	AudioClip(std::string pathToFile);
 
-	std::uint8_t GetChannels();
+	const std::uint8_t& GetChannels() const;
 
-	std::uint32_t GetSampleRate();
+	const std::uint32_t& GetSampleRate() const;
 
-	std::vector<std::int16_t> GetAudioData();
+	const std::vector<char>& GetAudioData() const;
 
-	std::uint64_t GetTotalSamples();
+	const std::uint64_t& GetTotalSamples() const;
 
-	bool isStereoAudioClip();
+	const ALenum& GetFormat() const;
 
-private:
+	const float& GetClipLengthInMillis() const;
+
+	std::uint8_t& GetChannels();
+
+	std::uint32_t& GetSampleRate();
+
+	std::vector<char>& GetAudioData();
+
+	std::uint64_t& GetTotalSamples();
+
+	ALenum& GetFormat();
+
+	float& GetClipLengthInMillis();
+
+	bool IsStereoAudioClip();
+
+protected:
 	std::uint32_t channels;
 
 	std::uint32_t sampleRate;
 
 	std::uint64_t totalPcmFrameCount;
 
-	std::vector<std::int16_t> audioData;
+	std::vector<char> audioData;
+
+	float lengthOfClipInMillis;
+
+	ALenum format;
 };
