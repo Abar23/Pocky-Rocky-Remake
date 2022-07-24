@@ -6,6 +6,7 @@
 #include "shader.h"
 #include "core/sound/Audio.h"
 #include "stb/stb_image.h"
+#include "core/utility/GlErrorCheck.h"
 
 class Game {
 
@@ -49,8 +50,8 @@ public:
 	}
 
 	void shutdown() {
-		glDeleteVertexArrays(1, &vao);
-		glDeleteBuffers(1, &vbo);
+		glCall(glDeleteVertexArrays, 1, &vao);
+		glCall(glDeleteBuffers, 1, &vbo);
 
 		glfwDestroyWindow(window);
 		glfwTerminate();
@@ -65,6 +66,10 @@ private:
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifdef DEBUG
+		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+#endif
 
 #ifdef __APPLE__
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -90,6 +95,17 @@ private:
 			return false;
 		}
 
+		// enable OpenGL debug context if context allows for debug context
+		int flags; 
+		glCall(glGetIntegerv, GL_CONTEXT_FLAGS, &flags);
+		if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+		{
+			glCall(glEnable, GL_DEBUG_OUTPUT);
+			glCall(glEnable, GL_DEBUG_OUTPUT_SYNCHRONOUS); // makes sure errors are displayed synchronously
+			glCall(glDebugMessageCallback, glDebugOutput, nullptr);
+			glCall(glDebugMessageControl, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+		}
+
 		return true;
 	}
 
@@ -106,48 +122,48 @@ private:
 			1, 2, 3   // second Triangle
 		};
 
-		glGenVertexArrays(1, &vao);
-		glGenBuffers(1, &vbo);
-		glGenBuffers(1, &ebo);
+		glCall(glGenVertexArrays, 1, &vao);
+		glCall(glGenBuffers, 1, &vbo);
+		glCall(glGenBuffers, 1, &ebo);
 		// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-		glBindVertexArray(vao);
+		glCall(glBindVertexArray, vao);
 
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+		glCall(glBindBuffer, GL_ARRAY_BUFFER, vbo);
+		glCall(glBufferData, GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+		glCall(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, ebo);
+		glCall(glBufferData, GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glEnableVertexAttribArray(0);
+		glCall(glVertexAttribPointer, 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+		glCall(glEnableVertexAttribArray, 0);
 
-		glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
+		glCall(glVertexAttribPointer, 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+		glCall(glEnableVertexAttribArray, 1);
 
 		// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glCall(glBindBuffer, GL_ARRAY_BUFFER, 0);
 
 		// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
 		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 		// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
 		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-		glBindVertexArray(0);
+		glCall(glBindVertexArray, 0);
 	}
 
 	void initTextures() {
 		unsigned int mapTexture;
 
-		glGenTextures(1, &mapTexture);
-		glBindTexture(GL_TEXTURE_2D, mapTexture);
+		glCall(glGenTextures, 1, &mapTexture);
+		glCall(glBindTexture, GL_TEXTURE_2D, mapTexture);
 
 		//wrapping
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 
 		//filtering 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		int width, height, nrChannels;
 		stbi_set_flip_vertically_on_load(true);// flips y axis
@@ -158,8 +174,8 @@ private:
 
 
 		if (data) {
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-			glGenerateMipmap(GL_TEXTURE_2D);
+			glCall(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glCall(glGenerateMipmap, GL_TEXTURE_2D);
 		}
 		else {
 			std::cout << "Failed to load texture" << std::endl;
@@ -172,8 +188,8 @@ private:
 		shader->setInt("mapTexture", 0);
 
 		// bind textures on corresponding texture units
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, mapTexture);
+		glCall(glActiveTexture, GL_TEXTURE0);
+		glCall(glBindTexture, GL_TEXTURE_2D, mapTexture);
 
 	}
 
@@ -185,17 +201,17 @@ private:
 
 
 		processInput();
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glCall(glClearColor, 0.2f, 0.3f, 0.3f, 1.0f);
+		glCall(glClear, GL_COLOR_BUFFER_BIT);
 
 		// draw our first triangle
 		shader->use();
 
-		glUniform3f(glGetUniformLocation(shader->ID, "camPos"), cameraPosition[0], cameraPosition[1], cameraPosition[2]);
+		glCall(glUniform3f, glGetUniformLocation(shader->ID, "camPos"), cameraPosition[0], cameraPosition[1], cameraPosition[2]);
 
-		glBindVertexArray(vao);
+		glCall(glBindVertexArray, vao);
 
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glCall(glDrawElements, GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 	}
 
 
@@ -230,7 +246,7 @@ private:
 	{
 		// make sure the viewport matches the new window dimensions; note that width and 
 		// height will be significantly larger than specified on retina displays.
-		glViewport(0, 0, width, height);
+		glCall(glViewport, 0, 0, width, height);
 	}
 
 	// callback dispatchers
