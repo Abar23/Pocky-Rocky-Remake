@@ -2,39 +2,65 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
-#include <future>
+#include "locators/EcsLocator.h"
+#include "core/ecs/framework/EcsManager.h"
+#include "core/ecs/components/Gravity.h"
+#include "core/ecs/components/Transform.h"
+#include "core/ecs/components/RigidBody.h"
+#include "core/ecs/components/SpriteRenderer.h"
+#include "core/ecs/systems/PhysicsSystem.h"
+#include "core/ecs/systems/RenderSystem.h"
+#include "core/ecs/framework/EcsTypes.h"
+#include "math/Vec3.h"
+#include <memory>
+
 #include "shader.h"
-#include "core/sound/Audio.h"
-#include "stb/stb_image.h"
+#include "ComponentGenerator.h"
 #include "core/utility/GlErrorCheck.h"
 
-class Game {
+#include "stb/stb_image.h"
 
+class Game {
 	GLFWwindow* window;
-	Shader* shader;
+
+	EcsManager ecsManager;
+	std::shared_ptr<RenderSystem> renderSystem;
+	std::vector<Entity> entities;
+	Entity pockyEntity;
+	Entity mapEntity;
+
+
+	
+	// # of pixels in x,y for each map part
+	// not much use now but will be needed later
+	float  mapPixels[2] = { 1792, 3032 }; 
+	float section1Pixels[2] = { 256, 1368 };
+	float section2Pixels[2] = { 1280, 216 };
+	float section3Pixels[2] = { 256, 3032 };
+	int screenPixels[2] = { 256, 216 };
+	
 
 	inline static Game* event_handling_instance = nullptr;
-	const unsigned int SCR_WIDTH = 800;
-	const unsigned int SCR_HEIGHT = 600;
+	const unsigned int SCR_WIDTH = 3* screenPixels[0];
+	const unsigned int SCR_HEIGHT = 3* screenPixels[1];
 
-	float cameraPosition[3] = { 0,0,0 };
+	vec3 cameraPosition;
 	float deltaTime = 0;
 	float lastFrame;
-	GLuint          vao;
-	GLuint          vbo;
-	GLuint          ebo;
 
 public:
-	Game() 
-	{
+
+	Game() {
 		event_handling_instance = this;
 
 		bool success = createWindow();
 
-		shader = new Shader("assets/shaders/gameShader.vs", "assets/shaders/gameShader.fs");
+		ComponentGenerator::init();
 
-		initRenderer();
 		initTextures();
+		initECS();
+		initEntities();
+		
 
 		lastFrame = (float)glfwGetTime();
 	}
@@ -50,8 +76,10 @@ public:
 	}
 
 	void shutdown() {
-		glCall(glDeleteVertexArrays, 1, &vao);
-		glCall(glDeleteBuffers, 1, &vbo);
+		// now that vao is in a component, i dont think its being free'd anymore 
+		// (should probably look into that at some point but thats a future problem for future me)
+		//glDeleteVertexArrays(1, &vao);
+		//glDeleteBuffers(1, &vbo);
 
 		glfwDestroyWindow(window);
 		glfwTerminate();
@@ -87,6 +115,9 @@ private:
 		glfwMakeContextCurrent(window);
 		glfwSetFramebufferSizeCallback(window, framebuffer_size_callback_dispatch);
 
+		glfwSetWindowSizeLimits(window, 2* screenPixels[0], 2* screenPixels[1], GLFW_DONT_CARE, GLFW_DONT_CARE);
+		glfwSetWindowAspectRatio(window, screenPixels[0], screenPixels[1]);
+
 		// glad: load all OpenGL function pointers
 		// ---------------------------------------
 		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -96,7 +127,7 @@ private:
 		}
 
 		// enable OpenGL debug context if context allows for debug context
-		int flags; 
+		int flags;
 		glCall(glGetIntegerv, GL_CONTEXT_FLAGS, &flags);
 		if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
 		{
@@ -107,49 +138,7 @@ private:
 		}
 
 		return true;
-	}
-
-	void initRenderer() {
-		float vertices[] = {
-			//positions          //tex coords
-			1.0f,  171.0f / 16.0f, 0.0f,   1.0f / 7.0f, 171.0f / 379.0f,// top right
-			1.0f, -1.0f, 0.0f,   1.0f / 7.0f, 0.0f,// bottom right
-		   -1.0f, -1.0f, 0.0f,   0.0f, 0.0f,// bottom left
-		   -1.0f,  171.0f / 16.0f, 0.0f,   0.0f, 171.0f / 379.0f   // top left 
-		};
-		unsigned int indices[] = {  // note that we start from 0!
-			0, 1, 3,  // first Triangle
-			1, 2, 3   // second Triangle
-		};
-
-		glCall(glGenVertexArrays, 1, &vao);
-		glCall(glGenBuffers, 1, &vbo);
-		glCall(glGenBuffers, 1, &ebo);
-		// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-		glCall(glBindVertexArray, vao);
-
-		glCall(glBindBuffer, GL_ARRAY_BUFFER, vbo);
-		glCall(glBufferData, GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-		glCall(glBindBuffer, GL_ELEMENT_ARRAY_BUFFER, ebo);
-		glCall(glBufferData, GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-		glCall(glVertexAttribPointer, 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-		glCall(glEnableVertexAttribArray, 0);
-
-		glCall(glVertexAttribPointer, 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-		glCall(glEnableVertexAttribArray, 1);
-
-		// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-		glCall(glBindBuffer, GL_ARRAY_BUFFER, 0);
-
-		// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-		// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-		glCall(glBindVertexArray, 0);
-	}
+	} 
 
 	void initTextures() {
 		unsigned int mapTexture;
@@ -168,9 +157,32 @@ private:
 		int width, height, nrChannels;
 		stbi_set_flip_vertically_on_load(true);// flips y axis
 
-		// load and generate the texture
+		// load and generate the map texture
+		unsigned char* data = stbi_load("src/sprites/tempMap.png", &width, &height, &nrChannels, 0);
 
-		unsigned char* data = stbi_load("assets/sprite_sheets/level_one.png", &width, &height, &nrChannels, 0);
+
+		if (data) {
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+			glGenerateMipmap(GL_TEXTURE_2D);
+		}
+		else {
+			std::cout << "Failed to load texture" << std::endl;
+		}
+		stbi_image_free(data);
+
+		
+
+		unsigned int pockyTexture;
+
+		glCall(glGenTextures, 1, &pockyTexture);
+		glCall(glBindTexture, GL_TEXTURE_2D, pockyTexture);
+
+		//filtering 
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		// load and generate the pocky texture
+		data = stbi_load("assets/sprite_sheets/bunnyPocky.png", &width, &height, &nrChannels, 0);
 
 
 		if (data) {
@@ -183,18 +195,81 @@ private:
 		stbi_image_free(data);
 
 
-		shader->use();
-
-		shader->setInt("mapTexture", 0);
-
 		// bind textures on corresponding texture units
 		glCall(glActiveTexture, GL_TEXTURE0);
 		glCall(glBindTexture, GL_TEXTURE_2D, mapTexture);
 
+		glCall(glActiveTexture, GL_TEXTURE1);
+		glCall(glBindTexture, GL_TEXTURE_2D, pockyTexture);
+	}
+	
+	void initECS() {
+		// ecs setup
+		EcsLocator::provide(&ecsManager);
+
+		ecsManager.RegisterComponent<Transform>();
+		ecsManager.RegisterComponent<SpriteRenderer>();
+
+
+		renderSystem = ecsManager.RegisterSystem<RenderSystem>();
+
+		Signature signature;
+		signature.set(ecsManager.GetComponentType<Transform>());
+		signature.set(ecsManager.GetComponentType<SpriteRenderer>());
+		ecsManager.SetSystemSignature<RenderSystem>(signature);
 	}
 
+	void initEntities() {
+		//creates map
+		mapEntity = ecsManager.CreateEntity();
+		entities.push_back(mapEntity);
+
+		ecsManager.AddComponent(
+			mapEntity,
+			Transform{
+				.position = vec3(-1.0f, -1.0f, 0.0f),
+				.rotation = vec3(0.0f, 0.0f, 0.0f),
+				.scale = vec3(1.0f, 1.0f, 1.0f)
+			});
+
+		ecsManager.AddComponent(mapEntity, ComponentGenerator::genSpriteRenderer(ComponentGenerator::Map));
+
+		//creates pocky
+		pockyEntity = ecsManager.CreateEntity();
+		entities.push_back(pockyEntity);
+
+		ecsManager.AddComponent(
+			pockyEntity,
+			Transform{
+				.position = vec3(0.0f, 0.0f, 0.0f),
+				.rotation = vec3(0.0f, 0.0f, 0.0f),
+				.scale = vec3(1.0f, 1.0f, 1.0f)
+			});
+
+		ecsManager.AddComponent(pockyEntity, ComponentGenerator::genSpriteRenderer(ComponentGenerator::Player));
+	}
+
+	// this will be in a PlayerController class later
+	int _currentFrame = 0;
+	float frameTime = 0.2f;
+	float frameCounter = 0.0f;
+	void PockyStuff() {
+		// updates the frame
+		frameCounter += deltaTime;
+		if (frameCounter >= frameTime) {
+			frameCounter = 0;
+			_currentFrame++;
+			if (_currentFrame == 131) _currentFrame = 0;
+		}
+		ecsManager.GetComponent<SpriteRenderer>(pockyEntity).currentFrame = _currentFrame;
+
+		ecsManager.GetComponent<SpriteRenderer>(pockyEntity).cameraPosition = cameraPosition;
+		ecsManager.GetComponent<Transform>(pockyEntity).position = cameraPosition;
+	}
+	
 
 	void render() {
+
 		float currentFrame = (float)glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
@@ -204,17 +279,14 @@ private:
 		glCall(glClearColor, 0.2f, 0.3f, 0.3f, 1.0f);
 		glCall(glClear, GL_COLOR_BUFFER_BIT);
 
-		// draw our first triangle
-		shader->use();
 
-		glCall(glUniform3f, glGetUniformLocation(shader->ID, "camPos"), cameraPosition[0], cameraPosition[1], cameraPosition[2]);
+		//update entity data
+		PockyStuff();
+		ecsManager.GetComponent<SpriteRenderer>(mapEntity).cameraPosition = cameraPosition;
 
-		glCall(glBindVertexArray, vao);
-
-		glCall(glDrawElements, GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		// renders entities
+		renderSystem->Update(deltaTime);
 	}
-
-
 
 
 
@@ -224,22 +296,19 @@ private:
 			glfwSetWindowShouldClose(window, true);
 
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-			cameraPosition[1] += 1.5f * deltaTime;
+			cameraPosition.y += 1.5f * deltaTime;
 		}
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-			cameraPosition[1] -= 1.5f * deltaTime;
+			cameraPosition.y -= 1.5f * deltaTime;
 		}
 		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-			cameraPosition[0] -= 1.5f * deltaTime;
+			cameraPosition.x -= 1.5f * deltaTime;
 		}
 		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-			cameraPosition[0] += 1.5f * deltaTime;
+			cameraPosition.x += 1.5f * deltaTime;
 		}
 
 	}
-
-
-
 
 	//callback functions
 	void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -254,5 +323,4 @@ private:
 	{
 		event_handling_instance->framebuffer_size_callback(window, width, height);
 	}
-
 };

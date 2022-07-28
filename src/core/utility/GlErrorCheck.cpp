@@ -6,7 +6,7 @@ bool checkOpenGlError(const std::string& filename, const std::uint32_t line)
 	GLenum glErrorCode = glGetError();
 	if (glErrorCode != GL_NO_ERROR)
 	{
-		std::cerr << "***ERROR*** (" << filename << ": " << line << ")\n";
+		std::cerr << "\n***ERROR*** (" << filename << ": " << line << ")\n";
 		switch (glErrorCode)
 		{
 			case GL_INVALID_ENUM:
@@ -45,9 +45,9 @@ bool checkOpenGlError(const std::string& filename, const std::uint32_t line)
 
 void glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam)
 {
-	if (id == 131185 || id == 131218) return;
+	//if (id == 131185 || id == 131218) return;
 
-	std::cout << "***DEBUG*** ( ID: " << id << "): " << message << std::endl;
+	std::cout << "\n***DEBUG*** ( ID: " << id << "): " << message << std::endl;
 	
 	std::cout << "Source: ";
 	switch (source)
@@ -136,4 +136,6 @@ void glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity,
 			std::cout << "Notification" << std::endl;
 			break;
 	}
+
+	std::cout << std::endl;
 }
