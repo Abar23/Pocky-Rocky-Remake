@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/Assert.h"
+#include "core/utility/Assert.h"
 
 template<typename System>
 std::shared_ptr<System> SystemManager::RegisterSystem()
