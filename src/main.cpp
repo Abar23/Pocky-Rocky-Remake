@@ -15,7 +15,6 @@
 
 int main()
 {
-
 	Game pockyAndRocky;
 	pockyAndRocky.run();
 	pockyAndRocky.shutdown();

@@ -99,9 +99,16 @@ public:
 		glCall(glUniform1f, glGetUniformLocation(ID, name.c_str()), value);
 	}
 
-	void setVec4(const std::string& name, float* value) {
-		glCall(glUniform4fv, glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+	void setVec2(const std::string& name, const float* value) const {
+		glCall(glUniform2fv, glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+	}
 
+	void setVec3(const std::string& name, const float* value) const {
+		glCall(glUniform3fv, glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
+	}
+
+	void setVec4(const std::string& name, const float* value) const {
+		glCall(glUniform4fv, glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
 	}
 
 private:
