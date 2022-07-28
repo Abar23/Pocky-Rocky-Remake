@@ -307,5 +307,4 @@ private:
 	{
 		event_handling_instance->framebuffer_size_callback(window, width, height);
 	}
-
 };
