@@ -11,7 +11,7 @@ public:
 	inline static Shader* entityShader;
 
 	static void init() {
-		entityShader = new Shader("src/shaders/entityShader.vs", "src/shaders/entityShader.fs");
+		entityShader = new Shader("assets/shaders/entityShader.vs", "assets/shaders/entityShader.fs");
 
 	}
 	static SpriteRenderer genSpriteRenderer(EntityTypes type) {
