@@ -18,7 +18,6 @@
 	#define alCall(func, ...) func(__VA_ARGS__); 
 
 	#define alcCall(func, device, ...) func(__VA_ARGS__); 
-	#define alcCall(func, device, ...) func(__VA_ARGS__); 
 #endif
 
 // al.h fucntion call error checker

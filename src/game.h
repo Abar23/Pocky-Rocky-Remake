@@ -16,6 +16,7 @@
 
 #include "shader.h"
 #include "ComponentGenerator.h"
+#include "core/utility/GlErrorCheck.h"
 
 #include "stb/stb_image.h"
 
@@ -94,6 +95,10 @@ private:
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+#ifdef DEBUG
+		glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+#endif
+
 #ifdef __APPLE__
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
@@ -121,22 +126,33 @@ private:
 			return false;
 		}
 
+		// enable OpenGL debug context if context allows for debug context
+		int flags;
+		glCall(glGetIntegerv, GL_CONTEXT_FLAGS, &flags);
+		if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+		{
+			glCall(glEnable, GL_DEBUG_OUTPUT);
+			glCall(glEnable, GL_DEBUG_OUTPUT_SYNCHRONOUS); // makes sure errors are displayed synchronously
+			glCall(glDebugMessageCallback, glDebugOutput, nullptr);
+			glCall(glDebugMessageControl, GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+		}
+
 		return true;
 	} 
 
 	void initTextures() {
 		unsigned int mapTexture;
 
-		glGenTextures(1, &mapTexture);
-		glBindTexture(GL_TEXTURE_2D, mapTexture);
+		glCall(glGenTextures, 1, &mapTexture);
+		glCall(glBindTexture, GL_TEXTURE_2D, mapTexture);
 
 		//wrapping
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
 
 		//filtering 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		int width, height, nrChannels;
 		stbi_set_flip_vertically_on_load(true);// flips y axis
@@ -158,20 +174,20 @@ private:
 
 		unsigned int pockyTexture;
 
-		glGenTextures(1, &pockyTexture);
-		glBindTexture(GL_TEXTURE_2D, pockyTexture);
+		glCall(glGenTextures, 1, &pockyTexture);
+		glCall(glBindTexture, GL_TEXTURE_2D, pockyTexture);
 
 		//filtering 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		// load and generate the pocky texture
 		data = stbi_load("assets/sprite_sheets/bunnyPocky.png", &width, &height, &nrChannels, 0);
 
 
 		if (data) {
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-			glGenerateMipmap(GL_TEXTURE_2D);
+			glCall(glTexImage2D, GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			glCall(glGenerateMipmap, GL_TEXTURE_2D);
 		}
 		else {
 			std::cout << "Failed to load texture" << std::endl;
@@ -180,11 +196,11 @@ private:
 
 
 		// bind textures on corresponding texture units
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, mapTexture);
+		glCall(glActiveTexture, GL_TEXTURE0);
+		glCall(glBindTexture, GL_TEXTURE_2D, mapTexture);
 
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, pockyTexture);
+		glCall(glActiveTexture, GL_TEXTURE1);
+		glCall(glBindTexture, GL_TEXTURE_2D, pockyTexture);
 	}
 	
 	void initECS() {
@@ -260,8 +276,8 @@ private:
 
 
 		processInput();
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glCall(glClearColor, 0.2f, 0.3f, 0.3f, 1.0f);
+		glCall(glClear, GL_COLOR_BUFFER_BIT);
 
 
 		//update entity data
@@ -299,7 +315,7 @@ private:
 	{
 		// make sure the viewport matches the new window dimensions; note that width and 
 		// height will be significantly larger than specified on retina displays.
-		glViewport(0, 0, width, height);
+		glCall(glViewport, 0, 0, width, height);
 	}
 
 	// callback dispatchers

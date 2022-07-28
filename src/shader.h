@@ -7,6 +7,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include "core/utility/GlErrorCheck.h"
 
 class Shader {
 
@@ -53,27 +54,27 @@ public:
 		// 2. compile shaders
 		unsigned int vertex, fragment;
 		// vertex shader
-		vertex = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(vertex, 1, &vShaderCode, NULL);
-		glCompileShader(vertex);
+		vertex = glCall(glCreateShader, GL_VERTEX_SHADER);
+		glCall(glShaderSource, vertex, 1, &vShaderCode, NULL);
+		glCall(glCompileShader, vertex);
 		checkCompileErrors(vertex, "VERTEX");
 
 		// fragment Shader
-		fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(fragment, 1, &fShaderCode, NULL);
-		glCompileShader(fragment);
+		fragment = glCall(glCreateShader, GL_FRAGMENT_SHADER);
+		glCall(glShaderSource, fragment, 1, &fShaderCode, NULL);
+		glCall(glCompileShader, fragment);
 		checkCompileErrors(fragment, "FRAGMENT");
 
 		// shader Program
-		ID = glCreateProgram();
-		glAttachShader(ID, vertex);
-		glAttachShader(ID, fragment);
-		glLinkProgram(ID);
+		ID = glCall(glCreateProgram, );
+		glCall(glAttachShader, ID, vertex);
+		glCall(glAttachShader, ID, fragment);
+		glCall(glLinkProgram, ID);
 		checkCompileErrors(ID, "PROGRAM");
 
 		// delete the shaders as they're linked into our program now and no longer necessary
-		glDeleteShader(vertex);
-		glDeleteShader(fragment);
+		glCall(glDeleteShader, vertex);
+		glCall(glDeleteShader, fragment);
 
 
 
@@ -82,24 +83,24 @@ public:
 	// activate the shader
 	// ------------------------------------------------------------------------
 	void use() {
-		glUseProgram(ID);
+		glCall(glUseProgram, ID);
 	}
 	// utility uniform functions
 	// ------------------------------------------------------------------------
 	void setBool(const std::string& name, bool value) const {
-		glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value);
+		glCall(glUniform1i, glGetUniformLocation(ID, name.c_str()), (int)value);
 	}
 	// ------------------------------------------------------------------------
 	void setInt(const std::string& name, int value) const {
-		glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
+		glCall(glUniform1i, glGetUniformLocation(ID, name.c_str()), value);
 	}
 	// ------------------------------------------------------------------------
 	void setFloat(const std::string& name, float value) const {
-		glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+		glCall(glUniform1f, glGetUniformLocation(ID, name.c_str()), value);
 	}
 
 	void setVec4(const std::string& name, float* value) {
-		glUniform4f(glGetUniformLocation(ID, name.c_str()), value[0], value[1], value[2], value[3]);
+		glCall(glUniform4fv, glGetUniformLocation(ID, name.c_str()), 1, &value[0]);
 
 	}
 
@@ -110,16 +111,16 @@ private:
 		int success;
 		char infoLog[1024];
 		if (type != "PROGRAM") {
-			glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+			glCall(glGetShaderiv, shader, GL_COMPILE_STATUS, &success);
 			if (!success) {
-				glGetShaderInfoLog(shader, 1024, NULL, infoLog);
+				glCall(glGetShaderInfoLog, shader, 1024, NULL, infoLog);
 				std::cout << "ERROR::SHADER_COMPILATION_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
 			}
 		}
 		else {
-			glGetProgramiv(shader, GL_LINK_STATUS, &success);
+			glCall(glGetProgramiv, shader, GL_LINK_STATUS, &success);
 			if (!success) {
-				glGetProgramInfoLog(shader, 1024, NULL, infoLog);
+				glCall(glGetProgramInfoLog, shader, 1024, NULL, infoLog);
 				std::cout << "ERROR::PROGRAM_LINKING_ERROR of type: " << type << "\n" << infoLog << "\n -- --------------------------------------------------- -- " << std::endl;
 			}
 		}
