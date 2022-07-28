@@ -158,7 +158,7 @@ private:
 		stbi_set_flip_vertically_on_load(true);// flips y axis
 
 		// load and generate the map texture
-		unsigned char* data = stbi_load("src/sprites/tempMap.png", &width, &height, &nrChannels, 0);
+		unsigned char* data = stbi_load("./assets/sprite_sheets/tempMap.png", &width, &height, &nrChannels, 0);
 
 
 		if (data) {
@@ -182,7 +182,7 @@ private:
 		glCall(glTexParameteri, GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 		// load and generate the pocky texture
-		data = stbi_load("assets/sprite_sheets/bunnyPocky.png", &width, &height, &nrChannels, 0);
+		data = stbi_load("./assets/sprite_sheets/bunnyPocky.png", &width, &height, &nrChannels, 0);
 
 
 		if (data) {
@@ -193,14 +193,6 @@ private:
 			std::cout << "Failed to load texture" << std::endl;
 		}
 		stbi_image_free(data);
-
-
-		// bind textures on corresponding texture units
-		glCall(glActiveTexture, GL_TEXTURE0);
-		glCall(glBindTexture, GL_TEXTURE_2D, mapTexture);
-
-		glCall(glActiveTexture, GL_TEXTURE1);
-		glCall(glBindTexture, GL_TEXTURE_2D, pockyTexture);
 	}
 	
 	void initECS() {

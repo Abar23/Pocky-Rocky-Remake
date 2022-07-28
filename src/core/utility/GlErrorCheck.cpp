@@ -45,7 +45,7 @@ bool checkOpenGlError(const std::string& filename, const std::uint32_t line)
 
 void glDebugOutput(GLenum source, GLenum type, unsigned int id, GLenum severity, GLsizei length, const char* message, const void* userParam)
 {
-	//if (id == 131185 || id == 131218) return;
+	if (id == 131185 || id == 131218) return;
 
 	std::cout << "\n***DEBUG*** ( ID: " << id << "): " << message << std::endl;
 	

@@ -16,10 +16,12 @@ public:
 			auto& transform = ecsManager->GetComponent<Transform>(entity);
 			auto const& spriteRenderer = ecsManager->GetComponent<SpriteRenderer>(entity);
 
-
 			spriteRenderer.shader->use();
+
 			// sets the texture
-			spriteRenderer.shader->setInt("entityTexture", spriteRenderer.textureID);
+			glCall(glActiveTexture, GL_TEXTURE0);
+			glCall(glBindTexture, GL_TEXTURE_2D, spriteRenderer.textureID);
+			spriteRenderer.shader->setInt("entityTexture", 0);
 			int currentRow = spriteRenderer.currentFrame / spriteRenderer.columns;
 			int currentColumn = spriteRenderer.currentFrame % spriteRenderer.columns;
 			glUniform2f(
@@ -28,14 +30,9 @@ public:
 				-currentRow * spriteRenderer.frameHeight);
 
 			// camera stuff
-			glUniform3f(glGetUniformLocation(spriteRenderer.shader->ID, "camPos"), 
-				spriteRenderer.cameraPosition.x, 
-				spriteRenderer.cameraPosition.y, 
-				spriteRenderer.cameraPosition.z); // this needs to be a matrix
+			spriteRenderer.shader->setVec3("camPos", &spriteRenderer.cameraPosition.data[0]);
 
-			glUniform2f(glGetUniformLocation(spriteRenderer.shader->ID, "entityPos"), 
-				transform.position.x, 
-				transform.position.y);
+			spriteRenderer.shader->setVec2("entityPos", &transform.position.data[0]);
 
 			glBindVertexArray(spriteRenderer.vao);
 

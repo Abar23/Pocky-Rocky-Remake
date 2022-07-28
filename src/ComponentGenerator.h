@@ -48,7 +48,7 @@ public:
 			};
 			std::copy(playerVertices, playerVertices + 20, vertices);
 
-			_textureID = 1;
+			_textureID = 2;
 			_columns = 26;
 			_frameWidth = 1.0f / 26.0f;
 			_frameHeight = 1.0 / 6.0f;
@@ -67,7 +67,7 @@ public:
 				0,      mapHeight , 0.0f,    0.0f, 1.0f   // top left 
 			};
 			std::copy(mapVertices, mapVertices + 20, vertices);
-			_textureID = 0;
+			_textureID = 1;
 		}
 			break;
 		default:
