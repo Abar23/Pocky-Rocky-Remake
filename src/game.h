@@ -2,9 +2,7 @@
 #include <GLFW/glfw3.h>
 
 #include <iostream>
-#include <future>
 #include "shader.h"
-#include "core/sound/Audio.h"
 #include "stb/stb_image.h"
 
 class Game {
